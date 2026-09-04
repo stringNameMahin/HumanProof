@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; min-height: 100vh;
+    display: grid; place-items: center;
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #f4f5f7; color: #16181d;
+  }
+  .card {
+    width: min(360px, 90vw); padding: 32px;
+    background: #fff; border: 1px solid #e3e5ea; border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+  h1 { margin: 0 0 24px; font-size: 20px; }
+  label { display: block; margin-bottom: 6px; font-size: 13px; color: #5b616e; }
+  input {
+    width: 100%; box-sizing: border-box; padding: 9px 11px; margin-bottom: 16px;
+    font: inherit; border: 1px solid #d3d6dd; border-radius: 6px; background: #fff; color: inherit;
+  }
+  input:focus { outline: 2px solid #4a6cf7; outline-offset: -1px; border-color: transparent; }
+  button {
+    width: 100%; padding: 10px; font: inherit; font-weight: 600;
+    color: #fff; background: #4a6cf7; border: 0; border-radius: 6px; cursor: pointer;
+  }
+  button:hover { background: #3a5ae0; }
+  .status { margin-top: 16px; font-size: 13px; color: #5b616e; min-height: 1.5em; }
+  .status.err { color: #c02a2a; }
+</style>
+</head>
+<body>
+  <form class="card" id="login-form">
+    <h1>Sign in</h1>
+
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" autocomplete="off" required>
+
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="off" required>
+
+    <button type="submit" id="submit-btn">Sign in</button>
+    <p class="status" id="status">Buffered events: <span id="count">0</span></p>
+  </form>
+
+<script>
+const ENDPOINT = "/api/telemetry/";
+const SESSION_ID = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
+
+const buffer = [];
+const countEl = document.getElementById("count");
+const statusEl = document.getElementById("status");
+
+// mousemove fires ~60x/sec; throttle it to ~20 samples/sec.
+let lastMove = 0;
+document.addEventListener("mousemove", (e) => {
+  const now = Date.now();
+  if (now - lastMove < 50) return;
+  lastMove = now;
+  record("move", e);
+});
+
+document.addEventListener("click", (e) => record("click", e));
+
+function record(type, e) {
+  buffer.push({
+    session_id: SESSION_ID,
+    event_type: type,
+    x: e.clientX,
+    y: e.clientY,
+    ts: Date.now()          // client clock, epoch ms
+  });
+  countEl.textContent = buffer.length;
+}
+
+document.getElementById("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();                    // no auth here; the button just flushes the buffer
+  const batch = buffer.splice(0, buffer.length);
+  countEl.textContent = 0;
+
+  if (batch.length === 0) {
+    setStatus("Nothing buffered yet. Move the mouse first.", true);
+    return;
+  }
+
+  setStatus("Sending " + batch.length + " events...");
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(batch)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || res.status);
+    setStatus("Stored " + data.stored + " events. Session " + SESSION_ID.slice(0, 8));
+  } catch (err) {
+    buffer.unshift(...batch);            // requeue so nothing is lost
+    countEl.textContent = buffer.length;
+    setStatus("Send failed: " + err.message, true);
+  }
+});
+
+function setStatus(msg, isError) {
+  statusEl.textContent = msg;
+  statusEl.classList.toggle("err", !!isError);
+}
+</script>
+</body>
+</html>
