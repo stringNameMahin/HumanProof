@@ -63,6 +63,34 @@ class FeatureTests(unittest.TestCase):
         self.assertEqual(timing["mean_scroll_speed_px_s"], 150)
         self.assertEqual(timing["mean_scroll_acceleration_px_s2"], 1000)
 
+    def test_scroll_rates_keep_page_and_panel_coordinates_separate(self):
+        observations = [(0, "page", 1000), (50, "panel", 0), (100, "page", 1010),
+                        (150, "panel", 20), (200, "page", 1020), (250, "panel", 40)]
+        events = [{"event_type": "scroll", "elapsed_ms": elapsed,
+                   "metadata": {"scroll_source": source, "scroll_y": position}}
+                  for elapsed, source, position in observations]
+        features = extract_features(events)
+        self.assertEqual(features["timing"]["mean_scroll_speed_px_s"], 150)
+        self.assertEqual(features["timing"]["mean_scroll_acceleration_px_s2"], 0)
+        self.assertEqual(features["timing"]["scroll_sources"], ["page", "panel"])
+        self.assertEqual(features["data_quality"]["unknown_scroll_source_count"], 0)
+
+    def test_missing_scroll_source_has_an_explicit_quality_flag(self):
+        events = [{"event_type": "scroll", "elapsed_ms": 100,
+                   "metadata": {"scroll_y": 10}}]
+        result = score_session(events)
+        self.assertEqual(result["features"]["timing"]["scroll_sources"], ["unknown"])
+        self.assertEqual(result["features"]["data_quality"]["unknown_scroll_source_count"], 1)
+        self.assertTrue(any("lack a source" in message for message in result["limitations"]))
+
+    def test_sequence_gaps_include_leading_loss_without_adding_risk(self):
+        events = [{"seq": index, "event_type": "shortcut", "elapsed_ms": index * 300}
+                  for index in range(3, 27) if index != 10]
+        result = score_session(events)
+        self.assertEqual(result["features"]["data_quality"]["sequence_gap_count"], 4)
+        self.assertEqual(result["risk_score"], 0)
+        self.assertTrue(any("incomplete collection" in message for message in result["limitations"]))
+
     def test_submillisecond_intervals_do_not_overflow_rates(self):
         events = [move(0), move(1, elapsed=5e-324), move(2, elapsed=0.5)]
         events += [{"event_type": "scroll", "elapsed_ms": elapsed,

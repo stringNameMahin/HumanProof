@@ -37,6 +37,10 @@ def score_session(events, fingerprint=None):
         limitations.append("Motion intervals below 1 ms were excluded from rate calculations.")
     if quality["duplicate_events"] or quality["dropped_events"]:
         limitations.append("Duplicate or invalid events were excluded from features.")
+    if quality["sequence_gap_count"]:
+        limitations.append("Missing event sequence numbers indicate incomplete collection and do not add risk points.")
+    if quality["unknown_scroll_source_count"]:
+        limitations.append("Some scroll events lack a source; their surface continuity cannot be verified.")
 
     if ready:
         if browser["webdriver"] is True:

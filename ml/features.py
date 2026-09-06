@@ -43,11 +43,13 @@ def _normalize(events):
         "usable_events": 0,
         "dropped_events": 0,
         "duplicate_events": 0,
+        "sequence_gap_count": 0,
         "out_of_order_events": 0,
         "duplicate_timestamp_count": 0,
         "motion_gap_count": 0,
         "short_motion_interval_count": 0,
         "short_scroll_interval_count": 0,
+        "unknown_scroll_source_count": 0,
         "missing_coordinates": 0,
         "timestamp_source": "elapsed_ms",
         "pointer_types": [],
@@ -94,6 +96,9 @@ def _normalize(events):
             "x": x, "y": y, "metadata": metadata,
         })
     normalized.sort(key=lambda event: event["elapsed_ms"])
+    sequences = sorted(identity[1] for identity in seen if identity[1] >= 0)
+    quality["sequence_gap_count"] = (sequences[0] if sequences else 0) + sum(
+        right - left - 1 for left, right in zip(sequences, sequences[1:]))
     quality["usable_events"] = len(normalized)
     quality["duplicate_timestamp_count"] = sum(
         left["elapsed_ms"] == right["elapsed_ms"]
@@ -176,27 +181,33 @@ def _timing_features(events, quality):
                        for left, right in zip(clicks, clicks[1:])]
     scrolls = [event for event in events if event["event_type"] == "scroll"]
     scroll_distances, scroll_speeds, scroll_accelerations = [], [], []
-    previous_speed = None
-    previous_interval = None
+    previous_scrolls = {}
     for event in scrolls:
         delta = _number(event["metadata"].get("delta_y"))
         if delta is not None:
             scroll_distances.append(abs(delta))
-    for left, right in zip(scrolls, scrolls[1:]):
+    for right in scrolls:
+        source = right["metadata"].get("scroll_source", "unknown")
+        source = source if source in {"page", "panel"} else "unknown"
+        if source == "unknown":
+            quality["unknown_scroll_source_count"] += 1
+        previous = previous_scrolls.get(source)
+        previous_scrolls[source] = (right, None, None)
+        if previous is None:
+            continue
+        left, previous_speed, previous_interval = previous
         old_y = _number(left["metadata"].get("scroll_y"))
         new_y = _number(right["metadata"].get("scroll_y"))
         interval = right["elapsed_ms"] - left["elapsed_ms"]
         if interval < 1:
             quality["short_scroll_interval_count"] += 1
         if old_y is None or new_y is None or not 1 <= interval <= MAX_MOTION_GAP_MS:
-            previous_speed = None
             continue
         speed = abs(new_y - old_y) * 1000 / interval
         scroll_speeds.append(speed)
         if previous_speed is not None:
             scroll_accelerations.append(abs(speed - previous_speed) * 2000 / (interval + previous_interval))
-        previous_speed = speed
-        previous_interval = interval
+        previous_scrolls[source] = (right, speed, interval)
     duration = events[-1]["elapsed_ms"] - events[0]["elapsed_ms"] if events else 0
     interactions = [event for event in events if event["event_type"] != "focus"]
     interaction_duration = (interactions[-1]["elapsed_ms"] - interactions[0]["elapsed_ms"]
@@ -216,6 +227,7 @@ def _timing_features(events, quality):
         "mean_click_interval_ms": _mean(click_intervals),
         "click_interval_cv": _cv(click_intervals),
         "scroll_count": len(scrolls),
+        "scroll_sources": sorted(previous_scrolls),
         "scroll_distance_px": _round(sum(scroll_distances)),
         "mean_scroll_speed_px_s": _mean(scroll_speeds),
         "mean_scroll_acceleration_px_s2": _mean(scroll_accelerations),
