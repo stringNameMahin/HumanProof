@@ -1,6 +1,5 @@
-django==6.1.1
-djangorestframework==3.18.0
-django-cors-headers==4.9.0
-streamlit==1.63.0
-pandas==3.0.5
-altair==6.2.2
+django
+djangorestframework
+django-cors-headers
+streamlit
+pandas
