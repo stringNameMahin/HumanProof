@@ -3,14 +3,4 @@ __pycache__/
 *.py[cod]
 db.sqlite3
 .streamlit/
-.analyst-key
-.env
-data/raw/
-data/exports/
-artifacts/
-*.log
-test-results/
-summary.html
-summary.txt
-devRead.md
-test.md
+HumanProof_Codebase_Explanation.txt
