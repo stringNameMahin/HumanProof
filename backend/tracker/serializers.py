@@ -20,8 +20,17 @@ class FiniteFloat(serializers.FloatField):
         return value
 
 
+EVENT_TYPES = ["move", "click", "scroll", "focus", "shortcut", "key", "input"]
+TASKS = ["mixed-demo", "click-target", "reading", "form-demo", "sign-in"]
+HEX_DIGEST = r"^[0-9a-f]{64}$"
+
+
+def digest_field():
+    return serializers.RegexField(HEX_DIGEST, allow_null=True, required=False)
+
+
 class SessionSerializer(StrictSerializer):
-    task = serializers.ChoiceField(choices=["mixed-demo", "click-target", "reading", "form-demo"], default="mixed-demo")
+    task = serializers.ChoiceField(choices=TASKS, default="mixed-demo")
     schema_version = serializers.ChoiceField(choices=[1], default=1)
 
 
@@ -36,12 +45,20 @@ class MetadataSerializer(StrictSerializer):
     shortcut_category = serializers.ChoiceField(choices=["copy", "paste", "cut", "select_all", "undo", "redo", "navigation", "other"], required=False)
     target_width = FiniteFloat(min_value=0, max_value=100000, required=False)
     target_height = FiniteFloat(min_value=0, max_value=100000, required=False)
+    target_center_x = FiniteFloat(min_value=-100000, max_value=100000, required=False)
+    target_center_y = FiniteFloat(min_value=-100000, max_value=100000, required=False)
+    target_kind = serializers.ChoiceField(choices=["target", "control", "other"], required=False)
+    press_ms = FiniteFloat(min_value=0, max_value=60000, required=False)
+    is_trusted = serializers.BooleanField(required=False)
+    scroll_input = serializers.ChoiceField(choices=["wheel", "touch", "key", "drag", "programmatic"], required=False)
+    key_class = serializers.ChoiceField(choices=["char", "space", "enter", "backspace", "navigation", "modifier", "other"], required=False)
+    input_kind = serializers.ChoiceField(choices=["typed", "untyped", "paste", "drop", "delete", "replacement", "unknown"], required=False)
 
 
 class EventSerializer(StrictSerializer):
     event_id = serializers.UUIDField()
     seq = serializers.IntegerField(min_value=0, max_value=10000000)
-    event_type = serializers.ChoiceField(choices=["move", "click", "scroll", "focus", "shortcut"])
+    event_type = serializers.ChoiceField(choices=EVENT_TYPES)
     x = FiniteFloat(min_value=-100000, max_value=100000, allow_null=True, default=None)
     y = FiniteFloat(min_value=-100000, max_value=100000, allow_null=True, default=None)
     ts = serializers.IntegerField(min_value=0, max_value=9999999999999)
@@ -81,6 +98,27 @@ class BrowserSignalsSerializer(StrictSerializer):
     pixel_ratio = FiniteFloat(min_value=0, max_value=100, allow_null=True, required=False)
     max_touch_points = serializers.IntegerField(min_value=0, max_value=100, allow_null=True, required=False)
     pointer_type = serializers.ChoiceField(choices=["fine", "coarse", "none"], allow_null=True, required=False)
+    outer_width = serializers.IntegerField(min_value=0, max_value=100000, allow_null=True, required=False)
+    outer_height = serializers.IntegerField(min_value=0, max_value=100000, allow_null=True, required=False)
+    color_depth = serializers.IntegerField(min_value=0, max_value=64, allow_null=True, required=False)
+    device_memory = FiniteFloat(min_value=0, max_value=1024, allow_null=True, required=False)
+    user_agent = serializers.CharField(max_length=512, allow_blank=True, allow_null=True, required=False)
+    platform = serializers.CharField(max_length=64, allow_blank=True, allow_null=True, required=False)
+    ua_brands = serializers.CharField(max_length=256, allow_blank=True, allow_null=True, required=False)
+    languages_count = serializers.IntegerField(min_value=0, max_value=100, allow_null=True, required=False)
+    plugins_count = serializers.IntegerField(min_value=0, max_value=1000, allow_null=True, required=False)
+    has_chrome_object = serializers.BooleanField(allow_null=True, required=False)
+    touch_events = serializers.BooleanField(allow_null=True, required=False)
+    notification_permission = serializers.ChoiceField(choices=["default", "granted", "denied"], allow_null=True, required=False)
+    permission_query_state = serializers.ChoiceField(choices=["prompt", "granted", "denied"], allow_null=True, required=False)
+    cdp_detected = serializers.BooleanField(allow_null=True, required=False)
+    webgl_vendor = serializers.CharField(max_length=256, allow_blank=True, allow_null=True, required=False)
+    webgl_renderer = serializers.CharField(max_length=256, allow_blank=True, allow_null=True, required=False)
+    font_count = serializers.IntegerField(min_value=0, max_value=1000, allow_null=True, required=False)
+    canvas_hash = digest_field()
+    webgl_hash = digest_field()
+    audio_hash = digest_field()
+    font_hash = digest_field()
     availability = serializers.DictField(child=serializers.BooleanField(), required=False)
 
     def validate_availability(self, value):
@@ -98,3 +136,4 @@ class FingerprintSerializer(StrictSerializer):
 class LabelSerializer(StrictSerializer):
     label = serializers.ChoiceField(choices=["human", "bot", "unknown"])
     source = serializers.CharField(max_length=200, min_length=3)
+    group = serializers.RegexField(r"^[A-Za-z0-9._:-]{1,64}$", required=False, allow_blank=True, default="")

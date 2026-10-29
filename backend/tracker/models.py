@@ -16,6 +16,7 @@ class Session(models.Model):
     state = models.CharField(max_length=16, default="active")
     label = models.CharField(max_length=16, default="unknown")
     label_source = models.CharField(max_length=200, blank=True)
+    label_group = models.CharField(max_length=64, blank=True, help_text="Participant or automation family for grouped splits")
     event_count = models.PositiveIntegerField(default=0)
     fingerprint = models.JSONField(null=True, blank=True)
     assessment = models.JSONField(null=True, blank=True)
@@ -25,7 +26,7 @@ class Session(models.Model):
 
 
 class TelemetryEvent(models.Model):
-    EVENT_TYPES = [(value, value) for value in ("move", "click", "scroll", "focus", "shortcut")]
+    EVENT_TYPES = [(value, value) for value in ("move", "click", "scroll", "focus", "shortcut", "key", "input")]
     session = models.ForeignKey(Session, on_delete=models.CASCADE, related_name="events")
     event_id = models.UUIDField(default=uuid.uuid4)
     seq = models.PositiveIntegerField(null=True)
@@ -61,4 +62,16 @@ class LabelRevision(models.Model):
     session = models.ForeignKey(Session, on_delete=models.CASCADE, related_name="label_revisions")
     label = models.CharField(max_length=16)
     source = models.CharField(max_length=200)
+    group = models.CharField(max_length=64, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class NetworkObservation(models.Model):
+    """Request metadata seen by the server (and, behind the TLS edge, the ClientHello)."""
+    session = models.ForeignKey(Session, on_delete=models.CASCADE, related_name="network_observations")
+    endpoint = models.CharField(max_length=32)
+    observed_at = models.DateTimeField(auto_now_add=True)
+    data = models.JSONField()
+
+    class Meta:
+        ordering = ["id"]

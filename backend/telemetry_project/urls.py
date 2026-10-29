@@ -5,8 +5,10 @@ from django.http import FileResponse, Http404, JsonResponse
 from django.urls import include, path
 
 
-def index(request):
-    return FileResponse((settings.FRONTEND_DIR / "index.html").open("rb"), content_type="text/html")
+def page(name):
+    def view(request):
+        return FileResponse((settings.FRONTEND_DIR / name).open("rb"), content_type="text/html")
+    return view
 
 
 def asset(request, asset_path):
@@ -24,7 +26,8 @@ def health(request):
 
 
 urlpatterns = [
-    path("", index, name="index"),
+    path("", page("index.html"), name="index"),
+    path("login/", page("login.html"), name="login"),
     path("assets/<path:asset_path>", asset),
     path("health/", health),
     path("api/", include("tracker.urls")),

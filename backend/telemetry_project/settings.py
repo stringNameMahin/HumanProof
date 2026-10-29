@@ -11,10 +11,21 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "local-humanproof-demo-key-chan
 if not DEBUG and SECRET_KEY == "local-humanproof-demo-key-change-before-deployment":
     raise RuntimeError("Set DJANGO_SECRET_KEY before disabling debug mode.")
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost,[::1]").split(",")
-key_file = BASE_DIR / ".analyst-key"
-HUMANPROOF_ANALYST_KEY = os.environ.get("HUMANPROOF_ANALYST_KEY", "")
-if not HUMANPROOF_ANALYST_KEY and key_file.exists():
-    HUMANPROOF_ANALYST_KEY = key_file.read_text(encoding="ascii").strip()
+
+
+def local_key(name, file_name):
+    value = os.environ.get(name, "")
+    key_path = BASE_DIR / file_name
+    if not value and key_path.exists():
+        value = key_path.read_text(encoding="ascii").strip()
+    return value
+
+
+HUMANPROOF_ANALYST_KEY = local_key("HUMANPROOF_ANALYST_KEY", ".analyst-key")
+# Shared with edge/tls_edge.py so Django only trusts TLS metadata the edge signed.
+HUMANPROOF_EDGE_KEY = local_key("HUMANPROOF_EDGE_KEY", ".edge-key")
+HUMANPROOF_SESSION_RATE = os.environ.get("HUMANPROOF_SESSION_RATE", "60/hour")
+HUMANPROOF_INGEST_RATE = os.environ.get("HUMANPROOF_INGEST_RATE", "240/min")
 
 INSTALLED_APPS = [
     "django.contrib.contenttypes",

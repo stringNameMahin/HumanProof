@@ -1,124 +1,110 @@
 # HumanProof
 
-HumanProof is a local bot-detection demonstration with three client-side signal
-layers, explainable rule scoring, and an analyst dashboard.
+**An adversarially tested bot and scraping detector built on four layers of behavioural and environment
+evidence, fused by an explainable ensemble (BotBiometricNet).**
+
+BCSE410L Cyber Security project. Team: Aaryav Rastogi (23BCE0083), Mahin Pramod Dhoke (23BCE0014),
+Shivam Chandra (23BCE0081).
+
+CAPTCHAs interrupt people and are increasingly solved by automation. HumanProof instead observes *how* a page
+is used and *what* is using it, then explains its decision. It runs as a local, self-contained prototype:
 
 ```text
-Browser demo -> Django API -> SQLite sessions -> Python features and rules
-                                   |                       |
-                                   +---- Analyst API <-----+
-                                              |
-                                          Streamlit
+ Browser (lab or protected sign-in)                        Bot fleet (CDP, Selenium, Playwright, HTTP)
+   collectors.js  browser.js  sdk.js                           |
+        | batches, fingerprint                                 |
+        v                                                      v
+ [ TLS edge :8443 ]--- JA3/JA4, handshake timing (HMAC-signed) --->  Django REST API :8000
+                                                                     |  sessions, events, network observations
+                                                                     v
+                                                              SQLite  --->  ml/  features -> rules-v2 + BotBiometricNet
+                                                                     |                     |
+                                                                     +---- analyst API <---+--- policy (allow/challenge/block)
+                                                                                 |
+                                                                          Streamlit dashboard :8501
 ```
 
-The browser records basic environment signals, pointer movement, click timing,
-scroll activity, focus changes, and coarse shortcut categories. It does not
-collect typed text, passwords, or microphone audio.
+## What it detects
 
-This release is an observation-only prototype. The network layer, trained
-BotBiometricNet ensemble, and research-scale evaluation remain planned work.
-Scores are experimental risk points, not probabilities or proof of humanity.
+| Layer | Evidence collected | Example signals |
+| --- | --- | --- |
+| 1 Browser environment | Canvas, WebGL, offline-audio and font probes (hashed), hardware, screen, permissions, plugins | `navigator.webdriver`, headless user agent, software renderer, impossible window geometry, permission contradictions |
+| 2 Mouse dynamics | 60 Hz pointer samples, click positions with target geometry | Speed, acceleration, jerk, curvature, sideways micro-jitter, tremor-band power (6-14 Hz), **Fitts' law fit**, click offset from target centre, clicks with no approach |
+| 3 Interaction timing | Click press duration, click/scroll/key timing, input source | Instant press-release, metronomic clicks or typing, scrolling without any input device, text appearing without key presses, script-generated (untrusted) events |
+| 4 Network | Request headers on every collection call; ClientHello through the TLS edge | HTTP-library user agents, missing browser headers or client hints, user agent disagreeing with the page, **JA4/JA3 TLS fingerprints**, Chromium user agent without GREASE |
 
-## Setup
+Two scorers share the same features:
 
-Use Python 3.12 or newer. This checkout was verified with Python 3.14 and the
-direct dependency versions pinned in requirements.txt. Node.js 22 or newer is
-needed only for collector tests and the optional Chrome demonstration runner.
+- **rules-v2**: 22 transparent rules, each tagged with its layer. Always computed, always shown as reasons.
+- **BotBiometricNet**: one logistic model per layer plus a stacked fusion layer trained on out-of-fold layer
+  outputs. Saved as JSON coefficients, so it loads without executing code and every score decomposes exactly
+  into per-feature contributions. Used automatically once trained.
 
-Run from the project directory:
+The **protected sign-in** applies a policy to the score: allow below 40, challenge from 40, block from 75, and
+challenge whenever there is not enough evidence. The interaction lab only observes.
+
+Privacy: typed characters, passwords, audio and camera are never collected. Key events record only the *kind* of
+key (character, space, navigation...) and timing; password fields are skipped entirely. Fingerprint probes are
+sent as SHA-256 hashes.
+
+## Quick start (Windows, PowerShell)
+
+Requires Python 3.12+ (tested on 3.14), Node.js 22+ (tested on 24), and Chrome or Edge for the bot fleet.
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
-.venv\Scripts\python.exe backend\manage.py migrate
-.venv\Scripts\python.exe backend\manage.py init_demo
+powershell -ExecutionPolicy Bypass -File scripts\start_demo.ps1
 ```
 
-The last command creates an ignored local analyst key in backend/.analyst-key.
-Both Django and Streamlit load it automatically at startup. Existing keys are
-preserved. Restart the API after creating or changing the key.
+`start_demo.ps1` migrates the database, creates the local analyst and edge keys (`backend/.analyst-key`,
+`backend/.edge-key`, both gitignored), and starts three minimised windows:
 
-For an existing database, make a backup before migration. The migration
-preserves legacy events, creates related sessions, and marks their schema as 0;
-it does not invent missing coordinates, timing precision, or assessments.
-
-## Run
-
-In the first terminal:
-
-```powershell
-.venv\Scripts\python.exe backend\manage.py runserver 127.0.0.1:8000
-```
-
-Open http://127.0.0.1:8000. Select **Start session**, move the pointer and use the
-targets, scroll the reading panel, and try the optional preference form.
-Interact for at least 10 seconds, then select **Finish and assess**. Uploads
-happen automatically every 3 seconds or when a batch reaches 200 events.
-
-In a second terminal:
-
-```powershell
-.venv\Scripts\python.exe -m streamlit run dashboard\app.py --server.address 127.0.0.1 --server.headless true
-```
-
-Open http://127.0.0.1:8501. Refresh the session list to inspect the latest
-assessment. Labels require a human-entered source description and keep revision
-history. Evaluation includes only labeled, ready assessments and reports
-excluded sessions and missing denominators.
-
-See [the presentation guide](docs/demo-guide.md) for a five-minute walkthrough.
-
-## Demo automation and exports
-
-Run a controlled Chrome session through the actual browser collectors:
-
-```powershell
-node scripts/browser_demo.mjs
-```
-
-The runner uses an isolated headless Chrome profile, interacts with the demo,
-finishes the session, and labels it as a controlled bot run. It saves screenshots
-and a report under ignored test-results. It does not use your personal browser
-profile. Chrome must be installed; use the runner's --help for options.
-
-For a small API pipeline fixture without a browser:
-
-```powershell
-.venv\Scripts\python.exe scripts\demo_bot.py --count 1
-```
-
-This generates explicitly synthetic bot telemetry and labels its provenance.
-It never generates or labels human examples. These fixtures are not evidence
-of real-world detection accuracy.
-
-Export sessions and a checksum manifest:
-
-```powershell
-.venv\Scripts\python.exe scripts\export_dataset.py
-```
-
-Exports stay under ignored data/exports. Pause collection and finish sessions
-before exporting a stable snapshot. The manifest includes session/event counts,
-label sources, and synthetic counts. Grouped train/validation/test splitting and
-model training are not yet implemented.
-
-## Features delivered
-
-| Area | Behavior |
+| Service | URL |
 | --- | --- |
-| Session ingestion | Server IDs, expiring scoped tokens, bounded batches, strict validation, atomic writes and duplicate prevention |
-| Browser | WebDriver, concurrency, language/timezone, viewport/screen, pixel ratio, input capabilities and availability |
-| Mouse | Paths, speed, acceleration, turning angles, pauses and straightness |
-| Timing | Click intervals, burstiness, scroll speed/acceleration, idle periods and shortcut counts |
-| Assessment | Versioned shared feature code, rule reasons, missing-layer handling and insufficient-data outcomes |
-| Dashboard | Protected API access, pagination, charts, labels, JSON export and threshold comparisons |
-| Demo tooling | Controlled browser run, synthetic fixture, dataset export and automated verification |
+| Interaction lab | http://127.0.0.1:8000/ |
+| Protected sign-in | http://127.0.0.1:8000/login/ |
+| Same pages through the TLS edge | https://127.0.0.1:8443/ (self-signed; accept the warning once) |
+| Analyst dashboard | http://127.0.0.1:8501/ |
 
-The baseline needs at least 20 interaction events spanning 5 seconds. It adds 35
-points for a reported WebDriver signal, 25 for a long nearly straight path with
-uniform speed, and 25 for very regular clicks. Missing mouse activity does not
-automatically increase risk. The default evaluation threshold of 60 has not
-been validated against a representative dataset.
+Stop everything with `scripts\stop_demo.ps1`. On macOS/Linux run the same three commands by hand:
+`python backend/manage.py runserver`, `python edge/tls_edge.py`, `python -m streamlit run dashboard/app.py`.
+
+## Building the dataset and training BotBiometricNet
+
+1. **Bots.** With the demo running:
+   ```powershell
+   .venv\Scripts\python.exe -m pip install -r requirements-fleet.txt   # Selenium + Playwright, optional
+   powershell -ExecutionPolicy Bypass -File scripts\seed_demo.ps1 -Runs 4
+   ```
+   This runs eight automation profiles against the lab and the sign-in page and labels every run `bot`, grouped
+   by profile: `cdp-linear`, `cdp-teleport`, `cdp-stealth` (Bezier paths, Fitts-like timing, jitter, cleaned
+   user agent: an evasive bot), `js-synthetic`, `selenium-chrome`, `playwright-chrome`, `http-naive`, and
+   `http-forged` (fakes every client signal).
+2. **Humans.** Each team member completes the lab (and the sign-in page) about ten times, ideally through
+   https://127.0.0.1:8443 so the TLS layer is present, then labels their own sessions:
+   ```powershell
+   .venv\Scripts\python.exe backend\manage.py label_recent --count 10 --label human --group participant-mp --source "team member, desktop mouse" --yes
+   ```
+   Generated data is never labelled human by any tool in this repository.
+3. **Train, evaluate, deploy:**
+   ```powershell
+   .venv\Scripts\python.exe backend\manage.py train_model
+   .venv\Scripts\python.exe backend\manage.py rescore
+   ```
+   `train_model` refuses to run with fewer than 8 human and 8 bot sessions. It writes
+   `ml/models/botbiometricnet.json` and `docs/model-report.md`, which report grouped cross-validation (no
+   participant on both sides), leave-one-framework-out results, per-layer ablation, the rules baseline, and
+   95% confidence intervals. The running API picks up the new model without a restart.
+
+## Demo
+
+See [docs/demo-guide.md](docs/demo-guide.md) for a timed walkthrough. The short version:
+
+- Open the sign-in page, sign in normally: **allowed**. Run
+  `node scripts/bot_fleet.mjs --profiles cdp-linear --page sign-in`: **blocked**, with reasons.
+- In the dashboard, open **Compare** to put the two sessions side by side, then **Model** for the trained
+  ensemble's held-out results.
 
 ## Verification
 
@@ -126,36 +112,39 @@ been validated against a representative dataset.
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\verify.ps1
 ```
 
-Checks include migrations, legacy data preservation, token scope, invalid
-input, retry deduplication, completion, deterministic features, missing data,
-dashboard flows, exports, and collector transport behavior. The browser
-runner additionally exercises the live collection-to-assessment pipeline.
+Runs Django checks and migration consistency, backend API tests, feature/model tests, dashboard, script and TLS
+edge tests, JavaScript collector tests, and syntax checks of the browser scripts (108 automated tests). The same
+suite runs in GitHub Actions (`.github/workflows/ci.yml`). `node scripts/browser_demo.mjs` additionally drives
+real Chrome through the whole pipeline and saves screenshots under `test-results/`.
 
-## Configuration and limits
+## Documentation
 
-The default bind addresses are local only. Optional environment variables:
+| Document | Contents |
+| --- | --- |
+| [docs/architecture.md](docs/architecture.md) | Components, data flow, every feature and rule, the fusion maths, the TLS edge |
+| [docs/api-contract.md](docs/api-contract.md) | Endpoints, payloads, limits, errors |
+| [docs/demo-guide.md](docs/demo-guide.md) | Presentation walkthrough for three presenters |
+| [docs/implementation-report.md](docs/implementation-report.md) | Brief-to-implementation mapping, measured results, limitations |
+| [docs/model-report.md](docs/model-report.md) | Generated by `train_model` |
+| [PROGRESS.md](PROGRESS.md) | Work log and remaining items |
 
-- DJANGO_DEBUG: defaults to 1 for the local demo.
-- DJANGO_ALLOWED_HOSTS: defaults to localhost addresses.
-- DJANGO_SECRET_KEY: required when disabling debug mode.
-- HUMANPROOF_ANALYST_KEY: overrides the local key file for API, dashboard and CLI.
-- DJANGO_CORS_ORIGINS: optional comma-separated allowed origins.
+## Configuration
 
-.env.example lists names; it is not automatically loaded. Set variables in
-your shell when overriding defaults.
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `DJANGO_DEBUG` | `1` | Local demo mode; set `DJANGO_SECRET_KEY` when disabling |
+| `DJANGO_ALLOWED_HOSTS` | localhost addresses | Allowed host names |
+| `HUMANPROOF_ANALYST_KEY` | `backend/.analyst-key` | Key for the analyst API, dashboard and scripts |
+| `HUMANPROOF_EDGE_KEY` | `backend/.edge-key` | HMAC key shared by the TLS edge and Django |
+| `HUMANPROOF_SESSION_RATE` / `HUMANPROOF_INGEST_RATE` | `60/hour`, `240/min` | Per-IP throttles (the launcher raises them for the fleet) |
+| `HUMANPROOF_MODEL_PATH` | `ml/models/botbiometricnet.json` | Model artifact location |
 
-Requests are limited to 256 KB and 200 events per batch. A session holds up to
-20,000 events and 1,000 batches; a browser buffer holds up to 2,000 events.
-Creation is throttled to 60 sessions per IP per hour and ingestion to 240 requests
-per IP per minute. These in-process limits support a local demo, not a
-distributed production deployment.
+## Limitations
 
-The browser retains unacknowledged batches in memory and retries transient
-failures. On a failed finish, keep that tab open and select **Retry finish**.
-Uploads at tab closure are best effort; a durable offline queue is not provided.
-
-Raw evidence is protected by the analyst key and excluded from Git. Production
-hosting, stronger multi-user authorization, retention jobs, backup automation,
-load testing, network instrumentation, and validated models remain future work.
-
-See [the API contract](docs/api-contract.md) for routes and error behavior.
+This is a research prototype on a pilot dataset, not a production defence. Client-side signals can be forged
+(the `http-forged` profile shows how far, and that the network layer still catches it). The TLS edge sees the
+ClientHello but not raw TCP SYN timing or TTLs, which need packet capture, nor HTTP/2 frame fingerprints, which
+need an h2 server. Commercial anti-detect browsers were not available to test. Metrics come from a small number
+of volunteers and local automation profiles and carry wide confidence intervals; the brief's research targets
+(1M sessions, 99.3% detection) are out of scope. The edge certificate is self-signed and the analyst key is a
+single shared secret, both suitable only for a local demo.

@@ -116,6 +116,8 @@ class DashboardTests(unittest.TestCase):
         environment.start()
         self.addCleanup(environment.stop)
         self.session = demo_session()
+        self.model_info = {"active_version": "rules-v2", "model": None, "policy": {"allow_below": 40, "block_at": 75},
+                           "rules": [{"code": "webdriver_reported", "layer": "browser", "points": 35, "message": "Automation flag"}]}
         self.calls = []
         self.empty = False
         request = patch.object(AnalystClient, "request", autospec=True, side_effect=self.api_request)
@@ -139,6 +141,8 @@ class DashboardTests(unittest.TestCase):
                 "metrics": {"precision": 1, "recall": 1, "accuracy": 1, "false_positive_rate": None},
                 "model_version": "rules-v1", "limitations": ["Small demonstration sample."],
             }
+        if route == "/api/v1/model/":
+            return copy.deepcopy(self.model_info)
         return copy.deepcopy(self.session)
 
     def field(self, kind, label):
@@ -202,6 +206,103 @@ class DashboardTests(unittest.TestCase):
         self.run_app()
         self.assertEqual(self.calls[-1], ("/api/v1/evaluations/", {"threshold": 75}, None))
 
+
+    def test_layer_scores_fitts_chart_and_label_group(self):
+        assessment = self.session["assessment"]
+        assessment["layer_scores"] = {"browser": 35, "mouse": 10, "timing": 0, "network": None}
+        assessment["features"]["mouse"].update({
+            "fitts_points": [{"id_bits": 1.5, "movement_time_ms": 400}, {"id_bits": 3.0, "movement_time_ms": 610}],
+            "fitts_slope_ms_per_bit": 140, "fitts_intercept_ms": 190, "fitts_r2": 0.9})
+        assessment["model_explanation"] = {"top_contributions": [
+            {"layer": "browser", "feature": "webdriver", "value": True, "contribution": 2.1}]}
+        self.run_app()
+        self.assertEqual(len(self.app.get("vega_lite_chart")), 5)
+        self.assertTrue(any("network" in item.value for item in self.app.caption))
+        self.assertTrue(any("Contribution (log-odds)" in item.value.columns for item in self.app.dataframe))
+        self.field("selectbox", "Label").set_value("human")
+        self.field("text_input", "Label source").set_value("team member, desktop mouse")
+        self.field("text_input", "Label group").set_value("participant-mp")
+        self.field("button", "Save label").click()
+        self.run_app()
+        label_call = next(payload for route, _, payload in self.calls if route.endswith("/labels/"))
+        self.assertEqual(label_call, {"label": "human", "source": "team member, desktop mouse", "group": "participant-mp"})
+
+    def test_compare_view_shows_two_sessions(self):
+        other = copy.deepcopy(self.session)
+        other["id"] = "second-session"
+        original = self.api_request
+
+        def listing(client, route, params=None, payload=None):
+            if route == "/api/v1/sessions/":
+                self.calls.append((route, params, payload))
+                return {"count": 2, "results": [copy.deepcopy(self.session), copy.deepcopy(other)]}
+            return original(client, route, params, payload)
+
+        self.request.side_effect = listing
+        self.session["assessment"]["features"]["mouse"]["path"] = [{"x": 1, "y": 2, "elapsed_ms": 0}, {"x": 5, "y": 9, "elapsed_ms": 16}]
+        self.run_app()
+        self.field("radio", "View").set_value("Compare")
+        self.run_app()
+        self.assertEqual([item.label for item in self.app.selectbox][-2:], ["First session", "Second session"])
+        self.assertEqual(sum(item.label == "Bot risk score (0-100)" for item in self.app.metric), 2)
+        self.assertEqual(self.calls[-3][1], {"page": 1, "page_size": 100, "state": "complete"})
+
+    def test_model_view_with_and_without_a_trained_model(self):
+        self.run_app()
+        self.field("radio", "View").set_value("Model")
+        self.run_app()
+        self.assertTrue(any("No trained model" in item.value for item in self.app.info))
+        self.model_info["active_version"] = "botbiometricnet-v1-test"
+        metrics = {"auc": 0.97, "detection_rate": 0.9, "false_positive_rate": 0.05, "brier": 0.06,
+                   "confusion_matrix": {"tp": 9, "fn": 1, "fp": 1, "tn": 19}}
+        self.model_info["model"] = {
+            "training": {"sessions": 30, "humans": 20, "bots": 10}, "operating_threshold": 0.6,
+            "fusion": {"weights": {"browser": 1.2, "mouse": 0.8, "timing": 0.5, "network": 0.3}},
+            "layers": {"browser": {"trained": True, "features": ["webdriver", "webdriver__missing"], "coef": [1.5, 0.1]}},
+            "evaluation": {
+                "known_frameworks": {"at_operating_threshold": metrics, "at_0_5": metrics, "rules_baseline_at_60": metrics,
+                                     "layers_alone": {"browser": {"sessions": 30, **metrics}},
+                                     "calibration": [{"bin": "0.0-0.2", "count": 10, "mean_predicted": 0.1, "observed_bot_rate": 0.0}]},
+                "unseen_frameworks": {"families": {"cdp-linear": {"sessions": 5, "detection_rate": 1.0}}}},
+        }
+        self.run_app()
+        self.assertTrue(any(item.label == "ROC AUC" and item.value == "0.970" for item in self.app.metric))
+        self.assertTrue(any(item.label == "Operating threshold" and item.value == "60" for item in self.app.metric))
+        self.assertEqual(len(self.app.get("vega_lite_chart")), 2)
+
+    def test_evaluation_draws_score_distribution_and_roc(self):
+        original = self.api_request
+
+        def evaluation(client, route, params=None, payload=None):
+            result = original(client, route, params, payload)
+            if route == "/api/v1/evaluations/":
+                result["scores"] = [{"label": "human", "risk_score": 10}, {"label": "human", "risk_score": 45},
+                                    {"label": "bot", "risk_score": 80}, {"label": "bot", "risk_score": 40}]
+            return result
+
+        self.request.side_effect = evaluation
+        self.run_app()
+        self.field("radio", "View").set_value("Evaluation")
+        self.run_app()
+        self.assertEqual(len(self.app.get("vega_lite_chart")), 2)
+
+    def test_default_comparison_pairs_a_human_with_a_bot(self):
+        from dashboard.app import default_comparison
+
+        ready = {"status": "ready"}
+        sessions = [{"label": "bot", "assessment": ready}, {"label": "unknown"}, {"label": "bot", "assessment": ready},
+                    {"label": "human", "assessment": ready}]
+        self.assertEqual(default_comparison(sessions), (3, 0))
+        self.assertEqual(default_comparison(sessions[:3]), (0, 2))
+        self.assertEqual(default_comparison([{"label": "unknown"}, {"label": "unknown"}]), (0, 1))
+
+    def test_roc_points_cover_both_corners(self):
+        from dashboard.app import roc_points
+
+        points = roc_points([{"label": "human", "risk_score": 10}, {"label": "bot", "risk_score": 90}])
+        self.assertEqual((points[0]["False positive rate"], points[0]["Detection rate"]), (0.0, 0.0))
+        self.assertEqual((points[-1]["False positive rate"], points[-1]["Detection rate"]), (1.0, 1.0))
+        self.assertEqual(roc_points([{"label": "bot", "risk_score": 90}]), [])
 
 if __name__ == "__main__":
     unittest.main()

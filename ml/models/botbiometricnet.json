@@ -1,0 +1,953 @@
+{
+ "created_at": "2026-10-29T19:39:01.804979+00:00",
+ "evaluation": {
+  "known_frameworks": {
+   "at_0_5": {
+    "accuracy": 1.0,
+    "auc": 1.0,
+    "brier": 0.0001,
+    "confusion_matrix": {
+     "fn": 0,
+     "fp": 0,
+     "tn": 12,
+     "tp": 73
+    },
+    "detection_rate": 1.0,
+    "detection_rate_ci95": [
+     0.95,
+     1.0
+    ],
+    "false_positive_rate": 0.0,
+    "false_positive_rate_ci95": [
+     0.0,
+     0.2425
+    ],
+    "precision": 1.0,
+    "threshold": 0.5
+   },
+   "at_operating_threshold": {
+    "accuracy": 1.0,
+    "auc": 1.0,
+    "brier": 0.0001,
+    "confusion_matrix": {
+     "fn": 0,
+     "fp": 0,
+     "tn": 12,
+     "tp": 73
+    },
+    "detection_rate": 1.0,
+    "detection_rate_ci95": [
+     0.95,
+     1.0
+    ],
+    "false_positive_rate": 0.0,
+    "false_positive_rate_ci95": [
+     0.0,
+     0.2425
+    ],
+    "precision": 1.0,
+    "threshold": 0.5
+   },
+   "calibration": [
+    {
+     "bin": "0.0-0.2",
+     "count": 12,
+     "mean_predicted": 0.0036,
+     "observed_bot_rate": 0.0
+    },
+    {
+     "bin": "0.8-1.0",
+     "count": 73,
+     "mean_predicted": 0.997,
+     "observed_bot_rate": 1.0
+    }
+   ],
+   "family_detection": {
+    "cdp-linear": {
+     "detected": 11,
+     "detection_rate": 1.0,
+     "sessions": 11
+    },
+    "cdp-stealth": {
+     "detected": 12,
+     "detection_rate": 1.0,
+     "sessions": 12
+    },
+    "cdp-teleport": {
+     "detected": 7,
+     "detection_rate": 1.0,
+     "sessions": 7
+    },
+    "controlled-browser-run: Chrome/156.0.8078.48; CDP target and scroll task": {
+     "detected": 2,
+     "detection_rate": 1.0,
+     "sessions": 2
+    },
+    "http-forged": {
+     "detected": 7,
+     "detection_rate": 1.0,
+     "sessions": 7
+    },
+    "http-naive": {
+     "detected": 7,
+     "detection_rate": 1.0,
+     "sessions": 7
+    },
+    "js-synthetic": {
+     "detected": 11,
+     "detection_rate": 1.0,
+     "sessions": 11
+    },
+    "playwright-chrome": {
+     "detected": 6,
+     "detection_rate": 1.0,
+     "sessions": 6
+    },
+    "puppeteer-chrome": {
+     "detected": 3,
+     "detection_rate": 1.0,
+     "sessions": 3
+    },
+    "selenium-chrome": {
+     "detected": 7,
+     "detection_rate": 1.0,
+     "sessions": 7
+    }
+   },
+   "folds": 5,
+   "human_split": "session",
+   "layers_alone": {
+    "browser": {
+     "accuracy": 1.0,
+     "auc": 1.0,
+     "brier": 0.0011,
+     "confusion_matrix": {
+      "fn": 0,
+      "fp": 0,
+      "tn": 12,
+      "tp": 73
+     },
+     "detection_rate": 1.0,
+     "detection_rate_ci95": [
+      0.95,
+      1.0
+     ],
+     "false_positive_rate": 0.0,
+     "false_positive_rate_ci95": [
+      0.0,
+      0.2425
+     ],
+     "precision": 1.0,
+     "sessions": 85,
+     "threshold": 0.5
+    },
+    "mouse": {
+     "accuracy": 0.9872,
+     "auc": 0.9937,
+     "brier": 0.0194,
+     "confusion_matrix": {
+      "fn": 0,
+      "fp": 1,
+      "tn": 11,
+      "tp": 66
+     },
+     "detection_rate": 1.0,
+     "detection_rate_ci95": [
+      0.945,
+      1.0
+     ],
+     "false_positive_rate": 0.0833,
+     "false_positive_rate_ci95": [
+      0.0149,
+      0.3539
+     ],
+     "precision": 0.9851,
+     "sessions": 78,
+     "threshold": 0.5
+    },
+    "network": {
+     "accuracy": 1.0,
+     "auc": 1.0,
+     "brier": 0.1773,
+     "confusion_matrix": {
+      "fn": 0,
+      "fp": 0,
+      "tn": 12,
+      "tp": 73
+     },
+     "detection_rate": 1.0,
+     "detection_rate_ci95": [
+      0.95,
+      1.0
+     ],
+     "false_positive_rate": 0.0,
+     "false_positive_rate_ci95": [
+      0.0,
+      0.2425
+     ],
+     "precision": 1.0,
+     "sessions": 85,
+     "threshold": 0.5
+    },
+    "timing": {
+     "accuracy": 1.0,
+     "auc": 1.0,
+     "brier": 0.0159,
+     "confusion_matrix": {
+      "fn": 0,
+      "fp": 0,
+      "tn": 12,
+      "tp": 73
+     },
+     "detection_rate": 1.0,
+     "detection_rate_ci95": [
+      0.95,
+      1.0
+     ],
+     "false_positive_rate": 0.0,
+     "false_positive_rate_ci95": [
+      0.0,
+      0.2425
+     ],
+     "precision": 1.0,
+     "sessions": 85,
+     "threshold": 0.5
+    }
+   },
+   "operating_threshold": 0.5,
+   "rules_baseline_at_60": {
+    "accuracy": 0.7765,
+    "auc": 0.9178,
+    "brier": 0.163,
+    "confusion_matrix": {
+     "fn": 19,
+     "fp": 0,
+     "tn": 12,
+     "tp": 54
+    },
+    "detection_rate": 0.7397,
+    "detection_rate_ci95": [
+     0.6289,
+     0.8266
+    ],
+    "false_positive_rate": 0.0,
+    "false_positive_rate_ci95": [
+     0.0,
+     0.2425
+    ],
+    "precision": 1.0,
+    "threshold": 0.6
+   }
+  },
+  "unseen_frameworks": {
+   "families": {
+    "cdp-linear": {
+     "detected": 11,
+     "detection_rate": 1.0,
+     "detection_rate_ci95": [
+      0.7412,
+      1.0
+     ],
+     "sessions": 11
+    },
+    "cdp-stealth": {
+     "detected": 4,
+     "detection_rate": 0.3333,
+     "detection_rate_ci95": [
+      0.1381,
+      0.6094
+     ],
+     "sessions": 12
+    },
+    "cdp-teleport": {
+     "detected": 7,
+     "detection_rate": 1.0,
+     "detection_rate_ci95": [
+      0.6457,
+      1.0
+     ],
+     "sessions": 7
+    },
+    "controlled-browser-run: Chrome/156.0.8078.48; CDP target and scroll task": {
+     "detected": 2,
+     "detection_rate": 1.0,
+     "detection_rate_ci95": [
+      0.3424,
+      1.0
+     ],
+     "sessions": 2
+    },
+    "http-forged": {
+     "detected": 7,
+     "detection_rate": 1.0,
+     "detection_rate_ci95": [
+      0.6457,
+      1.0
+     ],
+     "sessions": 7
+    },
+    "http-naive": {
+     "detected": 7,
+     "detection_rate": 1.0,
+     "detection_rate_ci95": [
+      0.6457,
+      1.0
+     ],
+     "sessions": 7
+    },
+    "js-synthetic": {
+     "detected": 11,
+     "detection_rate": 1.0,
+     "detection_rate_ci95": [
+      0.7412,
+      1.0
+     ],
+     "sessions": 11
+    },
+    "playwright-chrome": {
+     "detected": 6,
+     "detection_rate": 1.0,
+     "detection_rate_ci95": [
+      0.6097,
+      1.0
+     ],
+     "sessions": 6
+    },
+    "puppeteer-chrome": {
+     "detected": 3,
+     "detection_rate": 1.0,
+     "detection_rate_ci95": [
+      0.4385,
+      1.0
+     ],
+     "sessions": 3
+    },
+    "selenium-chrome": {
+     "detected": 7,
+     "detection_rate": 1.0,
+     "detection_rate_ci95": [
+      0.6457,
+      1.0
+     ],
+     "sessions": 7
+    }
+   },
+   "held_out_human_false_positives": 0,
+   "held_out_human_fpr_ci95": null,
+   "held_out_human_sessions": 0,
+   "threshold": 0.5
+  }
+ },
+ "feature_version": "features-v2",
+ "fusion": {
+  "availability": {
+   "browser": -0.003117,
+   "mouse": -0.00527,
+   "network": -0.003117,
+   "timing": -0.003117
+  },
+  "intercept": 0.40483,
+  "source": "in-sample (too few groups for stacking folds)",
+  "weights": {
+   "browser": 0.804047,
+   "mouse": 0.518109,
+   "network": 0.13315,
+   "timing": 0.495379
+  }
+ },
+ "layers": {
+  "browser": {
+   "class_counts": {
+    "bot": 73,
+    "human": 12
+   },
+   "coef": [
+    0.296533,
+    0.030849,
+    0.296533,
+    0.030849,
+    0.151615,
+    0.030849,
+    0.0,
+    0.030849,
+    0.24738,
+    0.0,
+    0.0,
+    0.030849,
+    -1.161181,
+    0.030849,
+    -0.0,
+    0.030849,
+    -0.171121,
+    0.030849,
+    -1.161181,
+    0.030849,
+    0.0,
+    0.030849,
+    0.0,
+    0.149689
+   ],
+   "features": [
+    "webdriver",
+    "webdriver__missing",
+    "headless_user_agent",
+    "headless_user_agent__missing",
+    "software_renderer",
+    "software_renderer__missing",
+    "cdp_detected",
+    "cdp_detected__missing",
+    "anomaly_count",
+    "anomaly_count__missing",
+    "plugins_count",
+    "plugins_count__missing",
+    "languages_count",
+    "languages_count__missing",
+    "font_count",
+    "font_count__missing",
+    "hardware_concurrency",
+    "hardware_concurrency__missing",
+    "pixel_ratio",
+    "pixel_ratio__missing",
+    "max_touch_points",
+    "max_touch_points__missing",
+    "device_memory",
+    "device_memory__missing"
+   ],
+   "impute": [
+    1.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.693147,
+    0.0,
+    1.791759,
+    0.0,
+    1.098612,
+    0.0,
+    3.295837,
+    0.0,
+    3.218876,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    2.833213,
+    0.0
+   ],
+   "intercept": 3.154439,
+   "mean": [
+    0.635294,
+    0.082353,
+    0.635294,
+    0.082353,
+    0.364706,
+    0.082353,
+    0.0,
+    0.082353,
+    0.683766,
+    0.0,
+    1.791759,
+    0.082353,
+    1.170729,
+    0.082353,
+    3.295837,
+    0.082353,
+    3.13474,
+    0.082353,
+    1.035294,
+    0.082353,
+    0.0,
+    0.082353,
+    2.833213,
+    0.164706
+   ],
+   "scale": [
+    0.481348,
+    0.274902,
+    0.481348,
+    0.274902,
+    0.481348,
+    0.274902,
+    1.0,
+    0.274902,
+    0.639741,
+    1.0,
+    1.0,
+    0.274902,
+    0.177871,
+    0.274902,
+    1.0,
+    0.274902,
+    0.280854,
+    0.274902,
+    0.087051,
+    0.274902,
+    1.0,
+    0.274902,
+    1.0,
+    0.370915
+   ],
+   "trained": true,
+   "training_rows": 85
+  },
+  "mouse": {
+   "class_counts": {
+    "bot": 66,
+    "human": 12
+   },
+   "coef": [
+    -0.829686,
+    0.0,
+    -0.10174,
+    0.0,
+    -0.828888,
+    0.0,
+    -0.521138,
+    0.0,
+    0.089538,
+    0.0,
+    0.541947,
+    0.0,
+    0.270771,
+    0.0,
+    -1.323964,
+    0.437628,
+    0.098356,
+    -0.52372,
+    0.017063,
+    -0.060797,
+    -0.431266,
+    -0.060797,
+    -0.053322,
+    -0.060797,
+    -0.064463,
+    -0.433419,
+    -0.055707,
+    0.0,
+    0.242781,
+    0.0,
+    -0.006182,
+    -0.060797
+   ],
+   "features": [
+    "speed_cv",
+    "speed_cv__missing",
+    "mean_speed_px_s",
+    "mean_speed_px_s__missing",
+    "mean_acceleration_px_s2",
+    "mean_acceleration_px_s2__missing",
+    "mean_jerk_px_s3",
+    "mean_jerk_px_s3__missing",
+    "straightness",
+    "straightness__missing",
+    "mean_turn_angle_deg",
+    "mean_turn_angle_deg__missing",
+    "mean_curvature_rad_px",
+    "mean_curvature_rad_px__missing",
+    "micro_jitter_px",
+    "micro_jitter_px__missing",
+    "tremor_band_ratio",
+    "tremor_band_ratio__missing",
+    "fitts_slope_ms_per_bit",
+    "fitts_slope_ms_per_bit__missing",
+    "fitts_r2",
+    "fitts_r2__missing",
+    "movement_time_cv",
+    "movement_time_cv__missing",
+    "mean_click_offset_ratio",
+    "mean_click_offset_ratio__missing",
+    "approachless_click_count",
+    "approachless_click_count__missing",
+    "pause_count",
+    "pause_count__missing",
+    "throughput_bits_s",
+    "throughput_bits_s__missing"
+   ],
+   "impute": [
+    0.6878,
+    0.0,
+    6.083518,
+    0.0,
+    7.741879,
+    0.0,
+    11.804726,
+    0.0,
+    0.13335,
+    0.0,
+    14.18905,
+    0.0,
+    0.006926,
+    0.0,
+    0.120003,
+    0.0,
+    0.1081,
+    1.0,
+    7.759,
+    0.0,
+    0.08985,
+    0.0,
+    0.1114,
+    0.0,
+    0.0484,
+    0.0,
+    0.0,
+    0.0,
+    2.079442,
+    0.0,
+    3.88655,
+    0.0
+   ],
+   "intercept": 2.693066,
+   "mean": [
+    0.690495,
+    0.0,
+    6.269756,
+    0.0,
+    7.348948,
+    0.0,
+    10.810674,
+    0.0,
+    0.265087,
+    0.0,
+    35.028909,
+    0.0,
+    0.033961,
+    0.0,
+    0.191193,
+    0.205128,
+    0.119365,
+    0.602564,
+    38.171497,
+    0.435897,
+    0.157119,
+    0.435897,
+    0.10594,
+    0.435897,
+    0.159538,
+    0.320513,
+    0.106638,
+    0.0,
+    1.951117,
+    0.0,
+    4.212562,
+    0.435897
+   ],
+   "scale": [
+    0.295684,
+    1.0,
+    0.701136,
+    1.0,
+    1.571319,
+    1.0,
+    2.533863,
+    1.0,
+    0.309627,
+    1.0,
+    41.819821,
+    1.0,
+    0.041304,
+    1.0,
+    0.232853,
+    0.403795,
+    0.083847,
+    0.489368,
+    108.408619,
+    0.495874,
+    0.185623,
+    0.495874,
+    0.066049,
+    0.495874,
+    0.198381,
+    0.466674,
+    0.250088,
+    1.0,
+    0.750694,
+    1.0,
+    1.164474,
+    0.495874
+   ],
+   "trained": true,
+   "training_rows": 78
+  },
+  "network": {
+   "class_counts": {
+    "bot": 73,
+    "human": 12
+   },
+   "coef": [
+    0.005573,
+    0.020961,
+    0.0,
+    0.0,
+    0.0,
+    0.019222,
+    -0.019665,
+    0.0,
+    -0.019665,
+    0.0,
+    -0.005573,
+    0.0,
+    -2.348854,
+    0.0
+   ],
+   "features": [
+    "client_library_user_agent",
+    "missing_browser_headers",
+    "headless_client_hints",
+    "user_agent_mismatch",
+    "language_mismatch",
+    "tls_user_agent_mismatch",
+    "sec_fetch_share",
+    "sec_fetch_share__missing",
+    "client_hint_share",
+    "client_hint_share__missing",
+    "accept_language_share",
+    "accept_language_share__missing",
+    "header_count_mean",
+    "header_count_mean__missing"
+   ],
+   "impute": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    0.0,
+    1.0,
+    0.0,
+    14.8333,
+    0.0
+   ],
+   "intercept": 1.111525,
+   "mean": [
+    0.082353,
+    0.082353,
+    0.0,
+    0.0,
+    0.0,
+    0.070588,
+    0.835294,
+    0.0,
+    0.835294,
+    0.0,
+    0.917647,
+    0.0,
+    13.503236,
+    0.0
+   ],
+   "scale": [
+    0.274902,
+    0.274902,
+    1.0,
+    1.0,
+    1.0,
+    0.256136,
+    0.370915,
+    1.0,
+    0.370915,
+    1.0,
+    0.274902,
+    1.0,
+    3.474947,
+    1.0
+   ],
+   "trained": true,
+   "training_rows": 85
+  },
+  "timing": {
+   "class_counts": {
+    "bot": 73,
+    "human": 12
+   },
+   "coef": [
+    -0.601189,
+    0.062953,
+    0.470479,
+    0.062953,
+    0.24006,
+    0.062953,
+    -0.346515,
+    0.069732,
+    -0.030211,
+    0.069732,
+    0.062109,
+    0.0,
+    0.144752,
+    0.0,
+    0.137353,
+    -0.406345,
+    -0.396131,
+    -0.352959,
+    -0.28011,
+    0.165216,
+    -1.804763,
+    0.165216,
+    0.165155,
+    0.0,
+    0.091602,
+    -0.099632,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "features": [
+    "median_press_ms",
+    "median_press_ms__missing",
+    "press_cv",
+    "press_cv__missing",
+    "instant_press_share",
+    "instant_press_share__missing",
+    "click_interval_cv",
+    "click_interval_cv__missing",
+    "mean_click_interval_ms",
+    "mean_click_interval_ms__missing",
+    "burstiness",
+    "burstiness__missing",
+    "time_to_first_interaction_ms",
+    "time_to_first_interaction_ms__missing",
+    "programmatic_scroll_share",
+    "programmatic_scroll_share__missing",
+    "mean_scroll_speed_px_s",
+    "mean_scroll_speed_px_s__missing",
+    "mean_key_press_ms",
+    "mean_key_press_ms__missing",
+    "key_interval_cv",
+    "key_interval_cv__missing",
+    "untyped_input",
+    "unknown_input",
+    "untrusted_events",
+    "idle_period_count",
+    "idle_period_count__missing",
+    "shortcut_count",
+    "shortcut_count__missing"
+   ],
+   "impute": [
+    0.852374,
+    0.0,
+    0.2377,
+    0.0,
+    1.0,
+    0.0,
+    0.6322,
+    0.0,
+    7.021765,
+    0.0,
+    0.3474,
+    0.0,
+    3.072693,
+    0.0,
+    0.333333,
+    0.0,
+    5.155876,
+    0.0,
+    4.515756,
+    0.0,
+    0.2006,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.693147,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "intercept": 3.337354,
+   "mean": [
+    2.226079,
+    0.129412,
+    0.448386,
+    0.129412,
+    0.635294,
+    0.129412,
+    0.572568,
+    0.047059,
+    7.120686,
+    0.047059,
+    0.333267,
+    0.0,
+    3.541253,
+    0.0,
+    0.479333,
+    0.211765,
+    5.279621,
+    0.247059,
+    3.627138,
+    0.352941,
+    0.241812,
+    0.352941,
+    0.329412,
+    0.0,
+    0.211765,
+    0.580367,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "scale": [
+    2.107275,
+    0.335655,
+    0.46221,
+    0.335655,
+    0.481348,
+    0.335655,
+    0.364912,
+    0.211765,
+    0.710365,
+    0.211765,
+    0.156235,
+    1.0,
+    1.91574,
+    1.0,
+    0.348635,
+    0.408559,
+    0.781374,
+    0.431301,
+    1.727985,
+    0.477885,
+    0.214699,
+    0.477885,
+    0.47,
+    1.0,
+    0.408559,
+    0.313918,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "trained": true,
+   "training_rows": 85
+  }
+ },
+ "model_version": "botbiometricnet-v1-202610291939-846029a8",
+ "operating_threshold": 0.5,
+ "schema": "botbiometricnet-v1",
+ "training": {
+  "bots": 73,
+  "dataset_sha256": "846029a835d8b27775da30c52a89721674feb3464398ce26822dca7748de6745",
+  "groups": {
+   "bot:cdp-linear": 11,
+   "bot:cdp-stealth": 12,
+   "bot:cdp-teleport": 7,
+   "bot:controlled-browser-run: Chrome/156.0.8078.48; CDP target and scroll task": 2,
+   "bot:http-forged": 7,
+   "bot:http-naive": 7,
+   "bot:js-synthetic": 11,
+   "bot:playwright-chrome": 6,
+   "bot:puppeteer-chrome": 3,
+   "bot:selenium-chrome": 7,
+   "human:participant-XX": 12
+  },
+  "humans": 12,
+  "sessions": 85
+ }
+}

@@ -155,8 +155,9 @@ try {
   await click("start-session", 3);
   await waitFor(() => evaluate('document.getElementById("session-state").textContent === "Collecting"'), "session collection");
   const sessionId = await evaluate('document.getElementById("session-id").textContent');
-  for (let target = 0; target < 6; target += 1) await click("target");
-  assert.equal(await evaluate('document.getElementById("target-count").textContent'), "6");
+  const targetTotal = Number(await evaluate('document.getElementById("target-total").textContent'));
+  for (let target = 0; target < targetTotal; target += 1) await click("target");
+  assert.equal(await evaluate('document.getElementById("target-count").textContent'), String(targetTotal));
   const reading = await center("reading-panel");
   await moveTo(reading, 8);
   for (let scroll = 0; scroll < 5; scroll += 1) {

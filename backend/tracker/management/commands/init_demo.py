@@ -4,14 +4,18 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 
 
+KEYS = {".analyst-key": "analyst key", ".edge-key": "TLS edge signing key"}
+
+
 class Command(BaseCommand):
-    help = "Create a local analyst key without overwriting an existing key."
+    help = "Create local analyst and edge keys without overwriting existing keys."
 
     def handle(self, *args, **options):
-        path = settings.BASE_DIR / ".analyst-key"
-        if path.exists():
-            self.stdout.write("Local analyst key already exists.")
-            return
-        with path.open("x", encoding="ascii") as output:
-            output.write(secrets.token_urlsafe(32) + "\n")
-        self.stdout.write("Created backend/.analyst-key. Restart the API if it is already running.")
+        for file_name, description in KEYS.items():
+            path = settings.BASE_DIR / file_name
+            if path.exists():
+                self.stdout.write(f"Local {description} already exists.")
+                continue
+            with path.open("x", encoding="ascii") as output:
+                output.write(secrets.token_urlsafe(32) + "\n")
+            self.stdout.write(f"Created backend/{file_name}. Restart the API if it is already running.")

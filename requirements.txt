@@ -4,3 +4,6 @@ django-cors-headers==4.9.0
 streamlit==1.63.0
 pandas==3.0.5
 altair==6.2.2
+numpy==2.5.4
+scikit-learn==1.9.1
+cryptography==50.0.2

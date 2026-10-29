@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>HumanProof | Protected sign-in demo</title>
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <script type="module" src="/assets/js/login.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="HumanProof home"><span class="brand-mark" aria-hidden="true">H</span>HumanProof<span class="brand-tag">PROTECTED SIGN-IN</span></a>
+      <nav class="top-links"><a href="/">Interaction lab</a><span class="connection"><span id="health-dot" class="status-dot"></span><span id="health">Checking API</span></span></nav>
+    </header>
+    <main class="login-layout">
+      <section class="lab-panel login-panel" aria-labelledby="login-title">
+        <p class="eyebrow">DEMO PORTAL / NO REAL ACCOUNTS</p>
+        <h1 id="login-title" class="login-title">Sign in without a CAPTCHA</h1>
+        <p class="subtle">HumanProof checks how this form is used instead of asking you to solve a puzzle. Low-risk sessions sign in directly, uncertain ones get a short challenge, and automated ones are blocked.</p>
+        <div class="privacy-note">Your email and password are never sent. Only pointer movement, the timing and kind of key presses in the email field, and browser details are analysed. Nothing is recorded from the password field.</div>
+        <form id="login-form" class="login-form" autocomplete="off" novalidate>
+          <label for="email">Email</label>
+          <input id="email" type="email" inputmode="email" placeholder="you@example.com" required>
+          <label for="password">Password</label>
+          <input id="password" type="password" placeholder="Any password works in this demo" required>
+          <label class="checkbox-label"><input type="checkbox" id="remember">Keep me signed in</label>
+          <button class="button primary" id="sign-in" type="submit" disabled>Sign in</button>
+          <p class="status-message" id="status" role="status" aria-live="polite">Preparing protection...</p>
+        </form>
+        <div id="challenge" class="challenge" hidden>
+          <h2>One quick check</h2>
+          <p class="subtle" id="challenge-reason">We could not verify this session with confidence.</p>
+          <button class="button secondary hold-button" id="hold" type="button"><span class="hold-fill" id="hold-fill"></span><span class="hold-label">Press and hold for 2 seconds</span></button>
+        </div>
+        <div id="outcome" class="outcome" hidden>
+          <p class="eyebrow" id="outcome-label">RESULT</p>
+          <h2 id="outcome-title"></h2>
+          <p class="subtle" id="outcome-copy"></p>
+          <button class="button secondary" id="again" type="button">Try again</button>
+        </div>
+      </section>
+      <aside class="assessment-panel login-assessment" aria-labelledby="assessment-title">
+        <p class="eyebrow">HUMANPROOF DECISION</p>
+        <h2 id="assessment-title">Session assessment</h2>
+        <div id="assessment-empty"><div class="empty-score">--<span>/ 100</span></div><p class="subtle">The decision appears after you select Sign in.</p></div>
+        <div id="assessment-result" hidden>
+          <div class="score-row"><strong id="risk-score">--</strong><span>/ 100 risk</span></div>
+          <span class="pill" id="decision"></span>
+          <ul class="layer-bars" id="layer-bars"></ul>
+          <ul class="reason-list" id="reasons"></ul>
+          <p class="model-label">MODEL <code id="model-version"></code></p>
+        </div>
+        <p class="assessment-note">Allow below 40, challenge from 40, block from 75. Not enough evidence also leads to a challenge. Demo policy, not a production setting.</p>
+      </aside>
+    </main>
+    <footer><span>HumanProof / Research prototype</span><span>Session <code id="session-id">starting</code></span></footer>
+  </div>
+</body>
+</html>

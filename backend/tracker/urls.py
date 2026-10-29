@@ -2,7 +2,7 @@ from django.urls import path
 
 from .views import (
     AssessmentView, CompleteView, EvaluationView, FingerprintView, LabelView,
-    LegacyView, SessionDetailView, SessionExportView, SessionListView, TelemetryIngestView,
+    LegacyView, ModelView, SessionDetailView, SessionExportView, SessionListView, TelemetryIngestView,
 )
 
 urlpatterns = [
@@ -16,4 +16,5 @@ urlpatterns = [
     path("v1/sessions/<str:session_id>/export/", SessionExportView.as_view()),
     path("v1/sessions/<str:session_id>/", SessionDetailView.as_view()),
     path("v1/evaluations/", EvaluationView.as_view()),
+    path("v1/model/", ModelView.as_view()),
 ]

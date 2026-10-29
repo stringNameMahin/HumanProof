@@ -1,3 +1,5 @@
+import base64
+import binascii
 import hashlib
 import hmac
 import json
@@ -14,11 +16,22 @@ from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as default_exception_handler
 
-from .models import Session, TelemetryBatch, TelemetryEvent
+from .models import NetworkObservation, Session, TelemetryBatch, TelemetryEvent
 
 TOKEN_SALT = "humanproof.collection.v1"
 TOKEN_LIFETIME = 7200
 EVENT_FIELDS = ["event_id", "seq", "event_type", "x", "y", "ts", "elapsed_ms", "metadata"]
+EDGE_HEADER = "HTTP_X_HUMANPROOF_EDGE"
+EDGE_SIGNATURE_HEADER = "HTTP_X_HUMANPROOF_EDGE_SIGNATURE"
+MAX_NETWORK_OBSERVATIONS = 1200
+OBSERVED_HEADERS = {
+    "user_agent": "HTTP_USER_AGENT", "accept": "HTTP_ACCEPT", "accept_language": "HTTP_ACCEPT_LANGUAGE",
+    "accept_encoding": "HTTP_ACCEPT_ENCODING", "origin": "HTTP_ORIGIN",
+    "sec_fetch_site": "HTTP_SEC_FETCH_SITE", "sec_fetch_mode": "HTTP_SEC_FETCH_MODE",
+    "sec_fetch_dest": "HTTP_SEC_FETCH_DEST", "sec_ch_ua": "HTTP_SEC_CH_UA",
+    "sec_ch_ua_mobile": "HTTP_SEC_CH_UA_MOBILE", "sec_ch_ua_platform": "HTTP_SEC_CH_UA_PLATFORM",
+    "connection": "HTTP_CONNECTION",
+}
 
 
 def exception_handler(exc, context):
@@ -37,7 +50,10 @@ class Unavailable(APIException):
 
 class SessionThrottle(SimpleRateThrottle):
     scope = "sessions"
-    rate = "60/hour"
+    setting = "HUMANPROOF_SESSION_RATE"
+
+    def get_rate(self):
+        return getattr(settings, self.setting)
 
     def get_cache_key(self, request, view):
         return self.cache_format % {"scope": self.scope, "ident": self.get_ident(request)}
@@ -45,7 +61,7 @@ class SessionThrottle(SimpleRateThrottle):
 
 class IngestThrottle(SessionThrottle):
     scope = "ingestion"
-    rate = "240/min"
+    setting = "HUMANPROOF_INGEST_RATE"
 
 
 class BodyLimitMiddleware:
@@ -71,6 +87,43 @@ def collection_session(request, session_id):
     if not isinstance(payload, dict) or payload.get("session_id") != str(session_id):
         raise PermissionDenied("Collection token belongs to another session.")
     return get_object_or_404(Session, pk=session_id)
+
+
+def edge_metadata(request):
+    """TLS details forwarded by edge/tls_edge.py; ignored unless the HMAC matches."""
+    encoded = request.META.get(EDGE_HEADER, "")
+    signature = request.META.get(EDGE_SIGNATURE_HEADER, "")
+    key = settings.HUMANPROOF_EDGE_KEY
+    if not encoded or not signature or not key or len(encoded) > 4096:
+        return None
+    expected = hmac.new(key.encode(), encoded.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, signature):
+        return None
+    try:
+        data = json.loads(base64.urlsafe_b64decode(encoded.encode()))
+    except (ValueError, binascii.Error):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def observe_network(request, session, endpoint):
+    """Store the request metadata the network layer analyses; never cookies or tokens."""
+    if NetworkObservation.objects.filter(session=session).count() >= MAX_NETWORK_OBSERVATIONS:
+        return
+    names = [key[5:].lower().replace("_", "-") for key in request.META
+             if key.startswith("HTTP_") and not key.startswith("HTTP_X_HUMANPROOF_EDGE")]
+    data = {name: (request.META.get(header) or None) for name, header in OBSERVED_HEADERS.items()}
+    data = {name: value[:512] if isinstance(value, str) else value for name, value in data.items()}
+    data.update({
+        "header_names": names[:64],
+        "header_order_hash": hashlib.sha256(",".join(names).encode()).hexdigest()[:16],
+        "tls": edge_metadata(request),
+    })
+    NetworkObservation.objects.create(session=session, endpoint=endpoint, data=data)
+
+
+def network_records(session):
+    return list(session.network_observations.values_list("data", flat=True))
 
 
 def require_analyst(request):
@@ -144,6 +197,7 @@ def session_record(session):
         "schema_version": session.schema_version,
         "label": session.label,
         "label_source": session.label_source,
+        "label_group": session.label_group,
         "event_count": session.event_count,
         "assessment": session.assessment,
     }
@@ -153,5 +207,6 @@ def public_assessment(session):
     if not session.assessment:
         return {"status": "pending", "risk_score": None, "decision": "observe"}
     return {key: session.assessment[key] for key in (
-        "status", "risk_score", "decision", "model_version", "feature_version", "reasons", "available_layers", "limitations"
+        "status", "risk_score", "rule_score", "model_score", "decision", "model_version", "feature_version",
+        "reasons", "layer_scores", "available_layers", "limitations", "policy"
     ) if key in session.assessment}

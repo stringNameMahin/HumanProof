@@ -1,4 +1,5 @@
 import { HumanProofSession } from "./sdk.js";
+import { LAYERS, renderLayerBars } from "./render.js";
 import { request } from "./transport.js";
 
 const byId = (id) => document.getElementById(id);
@@ -6,11 +7,14 @@ const startButton = byId("start-session");
 const finishButton = byId("finish-session");
 const tasks = byId("tasks");
 const target = byId("target");
-const positions = [[22, 32], [74, 18], [46, 60], [12, 52], [70, 56], [42, 20]];
+// Left %, top %, and diameter in px. Varying size and distance gives a spread of Fitts' law difficulty.
+const targets = [[22, 32, 47], [74, 18, 30], [46, 60, 56], [12, 52, 26], [70, 56, 40], [42, 20, 34], [86, 62, 24], [30, 68, 44]];
+const TARGET_COUNT = targets.length;
 let session = null;
 let timer = null;
 let hitCount = 0;
-let counts = { move: 0, click: 0, scroll: 0, focus: 0, shortcut: 0 };
+const emptyCounts = () => ({ move: 0, click: 0, scroll: 0, focus: 0, shortcut: 0, key: 0, input: 0 });
+let counts = emptyCounts();
 
 function setStatus(message, error = false) {
   byId("status").textContent = message;
@@ -41,7 +45,7 @@ function updateEvent(event) {
   counts[event.event_type] += 1;
   if (["move", "click", "scroll"].includes(event.event_type)) byId(`${event.event_type}-count`).textContent = counts[event.event_type].toLocaleString("en-US");
   setLayer("mouse", counts.move > 0);
-  setLayer("timing", counts.click + counts.scroll + counts.shortcut > 0);
+  setLayer("timing", counts.click + counts.scroll + counts.shortcut + counts.key > 0);
 }
 
 function updateElapsed() {
@@ -51,17 +55,18 @@ function updateElapsed() {
 }
 
 function placeTarget() {
-  const position = positions[Math.min(hitCount, positions.length - 1)];
-  target.style.left = `${position[0]}%`;
-  target.style.top = `${position[1]}%`;
-  target.textContent = hitCount < 6 ? String(hitCount + 1) : "OK";
-  target.setAttribute("aria-label", hitCount < 6 ? `Select target ${hitCount + 1}` : "Target task complete");
-  target.disabled = hitCount >= 6;
+  const [left, top, size] = targets[Math.min(hitCount, TARGET_COUNT - 1)];
+  target.style.left = `${left}%`;
+  target.style.top = `${top}%`;
+  target.style.width = target.style.height = `${size}px`;
+  target.textContent = hitCount < TARGET_COUNT ? String(hitCount + 1) : "OK";
+  target.setAttribute("aria-label", hitCount < TARGET_COUNT ? `Select target ${hitCount + 1}` : "Target task complete");
+  target.disabled = hitCount >= TARGET_COUNT;
   byId("target-count").textContent = hitCount;
 }
 
 function resetView() {
-  counts = { move: 0, click: 0, scroll: 0, focus: 0, shortcut: 0 };
+  counts = emptyCounts();
   for (const name of ["move", "click", "scroll", "stored", "buffer"]) byId(`${name}-count`).textContent = "0";
   hitCount = 0;
   placeTarget();
@@ -75,6 +80,7 @@ function resetView() {
   byId("assessment-empty").hidden = false;
   byId("assessment-result").hidden = true;
   for (const name of ["browser", "mouse", "timing"]) setLayer(name, false);
+  setLayer("network", false, "Server side");
 }
 
 function readable(value) {
@@ -102,8 +108,9 @@ function showAssessment(result) {
     item.textContent = "No additional reasons were returned for this session.";
     byId("reasons").append(item);
   }
+  renderLayerBars(byId("layer-bars"), result.layer_scores);
   if (Array.isArray(result.available_layers)) {
-    for (const layer of ["browser", "mouse", "timing"]) setLayer(layer, result.available_layers.includes(layer), "Insufficient");
+    for (const layer of LAYERS) setLayer(layer, result.available_layers.includes(layer), "Insufficient");
   }
 }
 
@@ -176,10 +183,10 @@ finishButton.addEventListener("click", async () => {
 });
 
 target.addEventListener("click", () => {
-  if (tasks.disabled || hitCount >= 6) return;
+  if (tasks.disabled || hitCount >= TARGET_COUNT) return;
   hitCount += 1;
   placeTarget();
-  if (hitCount === 6) {
+  if (hitCount === TARGET_COUNT) {
     byId("target-hint").textContent = "Target task complete. Continue with the reading panel.";
     byId("reading-panel").focus({ preventScroll: true });
   }

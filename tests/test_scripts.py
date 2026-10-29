@@ -4,6 +4,7 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
@@ -133,6 +134,42 @@ class DatasetExportTests(unittest.TestCase):
         self.assertEqual(output_directory("data/exports/example"),
                          (REPO_DIR / "data" / "exports" / "example").resolve())
 
+
+
+class FleetFixtureTests(unittest.TestCase):
+    def test_forged_api_sessions_evade_client_rules_but_not_naive_ones(self):
+        import random
+
+        from scripts.bot_fleet import forged_fingerprint, synthetic_lab_events
+
+        forged = synthetic_lab_events(random.Random(1), humanised=True)
+        self.assertEqual([event["seq"] for event in forged], list(range(len(forged))))
+        self.assertEqual(len({event["event_id"] for event in forged}), len(forged))
+        self.assertTrue(all("key" not in event["metadata"] for event in forged))
+        result = score_session(forged, forged_fingerprint())
+        client_layers = {reason["layer"] for reason in result["reasons"] if reason["points"]}
+        self.assertFalse(client_layers & {"browser", "mouse"})
+        naive = score_session(synthetic_lab_events(random.Random(1), humanised=False), {"language": "en-US"})
+        self.assertGreaterEqual(naive["risk_score"], 60)
+
+    def test_fleet_events_pass_the_strict_batch_schema(self):
+        import os
+        import random
+
+        import django
+
+        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "telemetry_project.settings")
+        sys.path.insert(0, str(REPO_DIR / "backend"))
+        django.setup()
+        from tracker.serializers import BatchSerializer, FingerprintSerializer
+
+        from scripts.bot_fleet import forged_fingerprint, synthetic_lab_events
+
+        events = synthetic_lab_events(random.Random(2), humanised=True)[:200]
+        batch = BatchSerializer(data={"session_id": "s", "batch_id": str(uuid.uuid4()), "schema_version": 1, "events": events})
+        self.assertTrue(batch.is_valid(), batch.errors)
+        signals = FingerprintSerializer(data={"session_id": "s", "schema_version": 1, "signals": forged_fingerprint()})
+        self.assertTrue(signals.is_valid(), signals.errors)
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,6 +4,8 @@ __pycache__/
 db.sqlite3
 .streamlit/
 .analyst-key
+.edge-key
+edge/certs/
 .env
 data/raw/
 data/exports/
@@ -14,3 +16,5 @@ summary.html
 summary.txt
 devRead.md
 test.md
+node_modules/
+docs/

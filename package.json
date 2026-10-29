@@ -1,0 +1,13 @@
+{
+  "name": "humanproof-tools",
+  "private": true,
+  "type": "module",
+  "description": "Node tooling for HumanProof. puppeteer-core is optional and only used by the bot fleet.",
+  "scripts": {
+    "test": "node --test frontend/tests/*.test.js",
+    "fleet": "node scripts/bot_fleet.mjs"
+  },
+  "optionalDependencies": {
+    "puppeteer-core": "25.14.0"
+  }
+}

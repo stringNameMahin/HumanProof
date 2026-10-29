@@ -3,14 +3,15 @@ import { startCollectors } from "./collectors.js";
 import { request, TelemetryTransport } from "./transport.js";
 
 export class HumanProofSession {
-  constructor({ onEvent = () => {}, onTransport = () => {}, onBrowser = () => {} } = {}) {
+  constructor({ task = "mixed-demo", onEvent = () => {}, onTransport = () => {}, onBrowser = () => {} } = {}) {
+    this.task = task;
     this.onEvent = onEvent;
     this.onTransport = onTransport;
     this.onBrowser = onBrowser;
     this.session = null;
     this.transport = null;
     this.collector = null;
-    this.signals = null;
+    this.signalsPromise = null;
     this.fingerprintSent = false;
     this.fingerprintPromise = null;
     this.exitHandler = null;
@@ -20,9 +21,9 @@ export class HumanProofSession {
   }
 
   async start() {
-    this.session = await request("/api/v1/sessions/", { body: { task: "mixed-demo", schema_version: 1 } });
+    this.session = await request("/api/v1/sessions/", { body: { task: this.task, schema_version: 1 } });
     this.transport = new TelemetryTransport(this.session, { onChange: this.onTransport });
-    this.signals = collectBrowserSignals();
+    this.signalsPromise = collectBrowserSignals();
     this.transport.start();
     this.collector = startCollectors((event) => {
       if (this.transport.add(event)) this.onEvent(event);
@@ -37,10 +38,10 @@ export class HumanProofSession {
   saveFingerprint() {
     if (this.fingerprintSent) return Promise.resolve();
     if (this.fingerprintPromise) return this.fingerprintPromise;
-    this.fingerprintPromise = request("/api/v1/fingerprints/", {
+    this.fingerprintPromise = this.signalsPromise.then((signals) => request("/api/v1/fingerprints/", {
       token: this.session.collection_token,
-      body: { session_id: this.session.session_id, schema_version: 1, signals: this.signals },
-    }).then(() => {
+      body: { session_id: this.session.session_id, schema_version: 1, signals },
+    })).then(() => {
       this.fingerprintSent = true;
       this.onBrowser(true);
     }).finally(() => { this.fingerprintPromise = null; });
